@@ -2,22 +2,31 @@
 #include <iostream>
 #include <cstdio>
 #include <list>
+#include <iterator>
+#include <cassert>
+#include <unordered_map>
 
 template <typename T, typename KeyT = int>
 struct cache_t {
-    size_t size_;
+    size_t sz_;
     std::list<T> Allcache_;
     std::list<T> HIRcache_;
-    std::unordered_map<KeyT, list<T> > Allhash_;
-    std::unordered_map<KeyT, list<T> > HIRhash_;
+    using ListIt = typename std::list<T>::iterator;
+    std::unordered_map<KeyT, ListIt > Allhash_;
+    std::unordered_map<KeyT, ListIt > HIRhash_;
     
 
+    bool full() const { // rewrite
+        return (cache_.size() == sz_); 
+    }
+    bool lookUpAndUpdate(KeyT key, slow_get_page);
+    bool StackPrune(ListIt *stop);
+    ListIt *bringForwardStack(ListIt *key);
+    ListIt *bringForwardHIR(ListIt *key);
 
-    bool lookUp(KeyT key, slow_get_page);
-    bool StackPrune();
 };
-
-bool lookUp(KeyT key, slow_get_page)
+/*=============================================================================*/
+bool lookUpAndUpdate(KeyT key, slow_get_page)
 {
     auto hit = Allhash_.find(key); // check if key is in Stack
     auto hit_hir = HIRhash_.find(key);
@@ -37,8 +46,8 @@ bool lookUp(KeyT key, slow_get_page)
             Allcache_.erase(old_lir_back);
             return true;
         }
-        Allcache_.bringforward(hit);
-        Allcache_.prune();
+        StackPrune(hit);
+        bringForwardStack(hit);
         /*if(prune) { // add to prune func
             HIRcache_.insert(old_lir_back);
             HIRhash_.insert(&old_lir_back);
@@ -46,11 +55,11 @@ bool lookUp(KeyT key, slow_get_page)
     }
     else {// is NOT in Stack
         if(hit_hir) 
-            HIRcache_.bringforward(hit_hir);
+            bringForwardHIR(hit_hir);
         else {// new element
             if(Allcache_.full()) {
                 if(HIRcache_.full())
-                    HIRcache_.popback();
+                    HIRcache_.pop_back();
                 auto new_hir_front = HIRcache_.push_front(key);
                 HIRhash_.insert(&new_hir_front);
             }
@@ -63,13 +72,35 @@ bool lookUp(KeyT key, slow_get_page)
     }
     return true;    
 }
-
-bool StackPrune()
+/*=============================================================================*/
+bool StackPrune(ListIt *stop)
 {
     auto old_back = Allcache_.back();
-    while(Allcache_.isLIR(old_back)) {
-        HIRcache_.push_back(Allcache_.data(old_back));
+    while(old_back != stop) {
+        if(Allcache_.isLIR(old_back)) {
+            auto new_hir_back = HIRcache_.push_back(Allcache_.data(old_back));
+            HIRhash_.insert(new_hir_back);
+        }
+        Allhash_.erase(Allcache_.data(old_back));
         Allcache_.popback();
-
     }
+    return true;
+}
+/*=============================================================================*/
+ListIt *bringForwardStack(ListIt *key) 
+{
+    ListIt *new_front = Allcache_.push_front(Allcache_.data(key));
+    Allhash_.insert(new_front);
+    Allhash.erase(key);
+    Allcache_.erase(key);
+    return new_front;
+}
+/*=============================================================================*/
+ListIt *bringForwardHIR(ListIt *key) 
+{
+    ListIt *new_front = HIRcache_.push_front(HIRcache_.data(key));
+    HIRhash_.insert(new_front);
+    HIRhash.erase(key);
+    HIRcache_.erase(key);
+    return new_front;
 }
