@@ -6,101 +6,98 @@
 #include <cassert>
 #include <unordered_map>
 
-template <typename T, typename KeyT = int>
-struct cache_t {
+template <typename T, typename KeyT = int> struct cache_ {
+    class list_t : public std::list<T> {
+        size_t sz_;
+        bool LIR;
+        
+        bool isLIR() {
+            return LIR;
+        }
+        void changestatus() {
+            LIR = !LIR;
+        }
+    };
     size_t sz_;
-    std::list<T> Allcache_;
-    std::list<T> HIRcache_;
+    
+    list_t Allcache_;
+    list_t HIRcache_;
+    bool full(std::list<T> *myList) const {
+            return (myList->size() == myList->sz_);
+    }
     using ListIt = typename std::list<T>::iterator;
     std::unordered_map<KeyT, ListIt > Allhash_;
     std::unordered_map<KeyT, ListIt > HIRhash_;
     
-
-    bool full() const { // rewrite
-        return (cache_.size() == sz_); 
-    }
-    bool lookUpAndUpdate(KeyT key, slow_get_page);
-    bool StackPrune(ListIt *stop);
-    ListIt *bringForwardStack(ListIt *key);
-    ListIt *bringForwardHIR(ListIt *key);
-
-};
-/*=============================================================================*/
-bool lookUpAndUpdate(KeyT key, slow_get_page)
-{
-    auto hit = Allhash_.find(key); // check if key is in Stack
-    auto hit_hir = HIRhash_.find(key);
-    
-    if(hit) { // in Stack
-        if(hit_hir) {// as HIR
-            Allcache_.changestatus(hit);
-            HIRhash_.erase(&hit_hir);
-            HIRcache_.erase(hit_hir);
-        }
-        else if(!Allcache_.isLIR(hit)) {// non-resident in Stack
-            Allcache_.changestatus(hit);
-            auto old_lir_back = Allcache_.back();
-            auto new_hir_back = HIRcache_.push_front(Allcache_.data(old_lir_back));
-            HIRhash_.insert(&new_hir_back);// what if no space in hirs
-            Allhash_.erase(&old_lir_back);
-            Allcache_.erase(old_lir_back);
-            return true;
-        }
-        StackPrune(hit);
-        bringForwardStack(hit);
-        /*if(prune) { // add to prune func
-            HIRcache_.insert(old_lir_back);
-            HIRhash_.insert(&old_lir_back);
-        }*/
-    }
-    else {// is NOT in Stack
-        if(hit_hir) 
-            bringForwardHIR(hit_hir);
-        else {// new element
-            if(Allcache_.full()) {
-                if(HIRcache_.full())
-                    HIRcache_.pop_back();
-                auto new_hir_front = HIRcache_.push_front(key);
-                HIRhash_.insert(&new_hir_front);
-            }
-            else {
-                auto new_all_front = Allcache_.push_front(key);
-                Allhash_.insert(new_all_front);
-            }
-        }
+    bool lookUpAndUpdate(KeyT key, int slow_get_page)
+    {
+        auto hit = Allhash_.find(key); // check if key is in Stack
+        auto hit_hir = HIRhash_.find(key);
         
-    }
-    return true;    
-}
-/*=============================================================================*/
-bool StackPrune(ListIt *stop)
-{
-    auto old_back = Allcache_.back();
-    while(old_back != stop) {
-        if(Allcache_.isLIR(old_back)) {
-            auto new_hir_back = HIRcache_.push_back(Allcache_.data(old_back));
-            HIRhash_.insert(new_hir_back);
+        if(hit) { // in Stack
+            if(hit_hir) {// as HIR
+                Allcache_[hit].changestatus();
+                HIRhash_.erase(hit_hir);
+                HIRcache_.erase(hit_hir);
+            }
+            else if(!Allcache_.isLIR(hit)) {// non-resident in Stack
+                Allcache_[hit].changestatus();
+                auto old_lir_back = Allcache_.end();// iterator
+                auto new_hir_back = HIRcache_.push_back(*old_lir_back);
+                HIRhash_.insert(new_hir_back);// what if no space in hirs
+                Allhash_.erase(old_lir_back);
+                Allcache_.erase(old_lir_back);
+                return true;
+            }
+            bringForwardStack(hit);
+            StackPrune();
         }
-        Allhash_.erase(Allcache_.data(old_back));
-        Allcache_.popback();
+        else {// is NOT in Stack
+            if(hit_hir) 
+                bringForwardHIR(hit_hir);
+            else {// new element
+                if(full(&Allcache_)) {
+                    if(full(&HIRcache_))
+                        HIRcache_.pop_back();
+                    auto new_hir_front = HIRcache_.push_front(slow_get_page(key));
+                    HIRhash_.insert(new_hir_front);
+                }
+                else {
+                    auto new_all_front = Allcache_.push_front(slow_get_page(key));
+                    Allhash_.insert(new_all_front);
+                }
+            }
+            
+        }
+        return true;    
     }
-    return true;
-}
-/*=============================================================================*/
-ListIt *bringForwardStack(ListIt *key) 
-{
-    ListIt *new_front = Allcache_.push_front(Allcache_.data(key));
-    Allhash_.insert(new_front);
-    Allhash.erase(key);
-    Allcache_.erase(key);
-    return new_front;
-}
-/*=============================================================================*/
-ListIt *bringForwardHIR(ListIt *key) 
-{
-    ListIt *new_front = HIRcache_.push_front(HIRcache_.data(key));
-    HIRhash_.insert(new_front);
-    HIRhash.erase(key);
-    HIRcache_.erase(key);
-    return new_front;
-}
+    bool StackPrune()
+    {
+        auto old_back = Allcache_.end();
+        Allhash_.erase(old_back);
+        Allcache_.pop_back();
+        old_back = Allcache_.end();
+        while(!Allcache_[old_back].isLIR()) {
+            auto new_hir_back = HIRcache_.push_back(*old_back);
+            HIRhash_.insert(new_hir_back);
+        
+            Allhash_.erase(old_back);
+            Allcache_.pop_back();
+        }
+        return true;
+    }
+    void bringForwardStack(ListIt it)
+    {
+        Allcache_.push_front(*it);
+        Allhash_.insert(Allcache_.begin());
+        Allhash_.erase(it);
+        Allcache_.erase(it);
+    }
+    void bringForwardHIR(ListIt it)
+    {
+        HIRcache_.push_front(*it);
+        HIRhash_.insert(HIRcache_.begin());
+        HIRhash_.erase(it);
+        HIRcache_.erase(it);
+    }
+};
