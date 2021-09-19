@@ -5,6 +5,7 @@
 #include <iterator>
 #include <cassert>
 #include <unordered_map>
+#include <cmath>
 
 template <typename T, typename KeyT = int> struct cache_ {
     class list_t : public std::list<T> {
@@ -29,6 +30,13 @@ template <typename T, typename KeyT = int> struct cache_ {
     std::unordered_map<KeyT, ListIt > Allhash_;
     std::unordered_map<KeyT, ListIt > HIRhash_;
     
+    cache_(size_t size) { // constructor
+        sz_ = size;
+        Allcache_.sz_ = ceil(0.9 * size);
+        HIRcache_.sz_ = floor(0.1 * size);
+
+    }
+
     bool lookUpAndUpdate(KeyT key, int slow_get_page)
     {
         auto hit = Allhash_.find(key); // check if key is in Stack
