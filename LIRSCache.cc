@@ -7,7 +7,7 @@
 #include <cmath>
 
 namespace caches {
-template <typename T, typename KeyT = int> struct cache_ {
+template <typename T, typename KeyT> struct cache_ {
     struct node_t {
         T data_;
         bool LIR_ = 1;

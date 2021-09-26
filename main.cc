@@ -17,12 +17,14 @@ std::string slow_get_page_string(std::string key)
 	return key;
 }
 /*============================================================*/
-template <typename T, typename F>
+template <typename T, typename F = T(*)(T)>
 struct cacheLookUpAndUpdate {
- 
+ 	cacheLookUpAndUpdate() {
+
+ 	}
 	void countCacheHits(size_t size, F type_get_func)
 	{
-		caches::cache_<T> c{size};
+		caches::cache_<T, T> c{size};
 		T val;
 		std::cout << "Enter number of elements\n";
 		int N;
@@ -31,7 +33,8 @@ struct cacheLookUpAndUpdate {
 		
 		for(int i = 0; i < N; i++) {
 			std::cin >> val;
-			c.lookUpAndUpdate<F>(val, type_get_func); // trouble func
+			//c.lookUpAndUpdate(val, type_get_func); // trouble func
+			c.template lookUpAndUpdate<F>(val, type_get_func); 
 		}
 		c.printCache();
 	}
@@ -45,21 +48,26 @@ int main(int argc, char** argv) {
 	assert(type_of_value != TYPE_OF_VALUE_ERORR);
 
 	// HOW I WANT IT TO BE, BUT...
-	/*switch(type_of_value) {
+
+	switch(type_of_value) {
 	case TYPE_OF_VALUE_INT: {
-		cacheLookUpAndUpdate<int, int(*)(int)>.countCacheHits(size, slow_get_page_int);
+		cacheLookUpAndUpdate<int> l;
+		l.countCacheHits(size, slow_get_page_int);
 		break;
 	}
 	case TYPE_OF_VALUE_FLOAT: {
-		cacheLookUpAndUpdate<float, float(*)(float)>.countCacheHits(size, slow_get_page_float);
+		cacheLookUpAndUpdate<float> l;
+
+		l.countCacheHits(size, slow_get_page_float);
 		break;
 	}
 	case TYPE_OF_VALUE_STRING: {
-		cacheLookUpAndUpdate<std::string, std::string(*)(std::string)>.countCacheHits(size, slow_get_page_string);
+		cacheLookUpAndUpdate<std::string> l;
+		l.countCacheHits(size, slow_get_page_string);
 		break;
 	}
-	}*/
-	using T = int;
+	}
+	/*using T = int;
 	caches::cache_<T> c{size};
 	T val;
 	std::cout << "Enter number of elements\n";
@@ -71,7 +79,7 @@ int main(int argc, char** argv) {
 		std::cin >> val;
 		c.lookUpAndUpdate<T(*)(T)>(val, slow_get_page_int); // trouble func
 	}
-	c.printCache();
+	c.printCache();*/
 	/*class {
 	public:
 		T type_get_func(T key) {
