@@ -10,7 +10,7 @@ namespace caches {
 template <typename T, typename KeyT> struct cache_ {
     struct node_t {
         T data_;
-        bool LIR_ = 1;
+        bool LIR_;
         node_t(T new_data) {
             data_ = new_data;
         }
@@ -40,15 +40,24 @@ template <typename T, typename KeyT> struct cache_ {
                 ListIt it = this->end();
                 return --it;
             }
+            void push_front_LIR(KeyT key) {
+                this->push_front(key);
+                this->LIR = 1;
+            }
+            void push_front_HIR(KeyT key) {
+                this->push_front(key);
+                this->LIR = 0;
+            }
+            void push_back_LIR(KeyT key) {
+                this->push_back(key);
+                this->LIR = 1;
+            }
+            void push_back_HIR(KeyT key) {
+                this->push_back(key);
+                this->LIR = 0;
+            }
     };
-    /*struct list_t { // хранить структуру в листе!
-        std::list<node_t> list_;
-        size_t sz_;
-        bool full() const {
-            return (sz_ == list_.size());
-        }
 
-    };*/
     size_t sz_;
     
     list_t Allcache_;
@@ -81,7 +90,6 @@ template <typename T, typename KeyT> struct cache_ {
         
         if(hit != Allhash_.end()) { // in Stack
             if(hit_hir != HIRhash_.end()) {// as HIR
-                //Allcache_[hit->second].changestatus();
                 Allcache_.changestatus(hit->second);
                 HIRhash_.erase(hit_hir);
                 HIRcache_.erase(hit_hir->second);
@@ -91,7 +99,6 @@ template <typename T, typename KeyT> struct cache_ {
                 auto old_lir_back = Allcache_.back();// iterator
                 HIRcache_.push_back(*old_lir_back);//??????? *
                 HIRcache_.changestatus(HIRcache_.back());
-                //HIRhash_.insert(new_hir_back);// what if no space in hirs
                 HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
                 Allhash_.erase((*old_lir_back).data_);
                 Allcache_.erase(old_lir_back);
@@ -113,14 +120,12 @@ template <typename T, typename KeyT> struct cache_ {
                     HIRcache_.push_front(node_t(slow_get_page(key)));
                     Allcache_.push_front(node_t(slow_get_page(key)));
                     Allcache_.setToHIR(Allcache_.front());
-                    //HIRhash_.insert(HIRcache_.front());
                     HIRhash_[(*HIRcache_.front()).data_] = HIRcache_.front();
                     Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
                 }
                 else {
                     Allcache_.push_front(node_t(slow_get_page(key)));
                     Allcache_.setToLIR(Allcache_.front());
-                    //Allhash_.insert(Allcache_.front());
                     Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
                 }
             }
@@ -150,21 +155,15 @@ template <typename T, typename KeyT> struct cache_ {
     void bringForwardStack(ListIt it)
     {
         Allcache_.push_front(*it);
-        //Allhash_.insert(Allcache_.front());
-        Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
-        Allhash_.erase((*it).data_);
         Allcache_.erase(it);
     }
     void bringForwardHIR(ListIt it)
     {
         HIRcache_.push_front(*it);
-        //HIRhash_.insert(HIRcache_.front());
-        HIRhash_[(*HIRcache_.front()).data_] = HIRcache_.front();
-        HIRhash_.erase((*it).data_);
         HIRcache_.erase(it);
     }
     void printCache() {
-        std::cout << "All elements\n";
+        std::cout << "------------\n" << "All elements\n";
         for(ListIt it = Allcache_.begin(); it != Allcache_.end(); it++){
             if((*it).LIR_)
                 std::cout << "LIR ";

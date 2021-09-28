@@ -2,27 +2,15 @@
 #include "LIRSCache.cc"
 #include "LIRSCache.hpp"
 
-int slow_get_page_int(int key)
-{
-	return key;
-}/*============================================================*/
-
-float slow_get_page_float(float key)
+/*============================================================*/
+template <typename Tt>
+Tt slow_get_page(Tt key)
 {
 	return key;
 }
 /*============================================================*/
-std::string slow_get_page_string(std::string key)
-{
-	return key;
-}
-/*============================================================*/
-template <typename T, typename F = T(*)(T)>
-struct cacheLookUpAndUpdate {
- 	cacheLookUpAndUpdate() {
-
- 	}
-	void countCacheHits(size_t size, F type_get_func)
+template <typename T>
+	int countCacheHits(size_t size)
 	{
 		caches::cache_<T, T> c{size};
 		T val;
@@ -33,12 +21,12 @@ struct cacheLookUpAndUpdate {
 		
 		for(int i = 0; i < N; i++) {
 			std::cin >> val;
-			//c.lookUpAndUpdate(val, type_get_func); // trouble func
-			c.template lookUpAndUpdate<F>(val, type_get_func); 
+			c.lookUpAndUpdate(val, slow_get_page<T>);
+			//c.template lookUpAndUpdate<F>(val, type_get_func); 
 		}
 		c.printCache();
+		return 0;
 	}
-};
 /*============================================================*/
 int main(int argc, char** argv) {
 	std::string type_of_value_str = argv[1];
@@ -47,82 +35,21 @@ int main(int argc, char** argv) {
 	int type_of_value = getTypeOfValue(type_of_value_str);
 	assert(type_of_value != TYPE_OF_VALUE_ERORR);
 
-	// HOW I WANT IT TO BE, BUT...
-
+	unsigned int hit = 0;
 	switch(type_of_value) {
 	case TYPE_OF_VALUE_INT: {
-		cacheLookUpAndUpdate<int> l;
-		l.countCacheHits(size, slow_get_page_int);
+		hit = countCacheHits<int>(size);
 		break;
 	}
 	case TYPE_OF_VALUE_FLOAT: {
-		cacheLookUpAndUpdate<float> l;
-
-		l.countCacheHits(size, slow_get_page_float);
+		hit = countCacheHits<float>(size);
 		break;
 	}
 	case TYPE_OF_VALUE_STRING: {
-		cacheLookUpAndUpdate<std::string> l;
-		l.countCacheHits(size, slow_get_page_string);
+		hit = countCacheHits<std::string>(size);
 		break;
 	}
 	}
-	/*using T = int;
-	caches::cache_<T> c{size};
-	T val;
-	std::cout << "Enter number of elements\n";
-	int N;
-	std::cin >> N;
-	std::cout << "Enter value\n";
-	
-	for(int i = 0; i < N; i++) {
-		std::cin >> val;
-		c.lookUpAndUpdate<T(*)(T)>(val, slow_get_page_int); // trouble func
-	}
-	c.printCache();*/
-	/*class {
-	public:
-		T type_get_func(T key) {
-			return key;
-		}
-	} func_type;
-	*/
-	/*switch(type_of_value) {
-	case TYPE_OF_VALUE_INT: {
-		break;
-	}
-	case TYPE_OF_VALUE_FLOAT: {
-		using T = float;
-		break;
-	}
-	case TYPE_OF_VALUE_STRING: {
-		using T = std::string;
-		break;
-	}
-	}*/
-	/*using func_type =  T (*)(T);
-	func_type type_get_func;
-	switch(type_of_value) {
-	case TYPE_OF_VALUE_INT: {
-		using T = int;
-		using func_type =  T (*)(T);
-		type_get_func = &slow_get_page_int;
-		break;
-	}
-	case TYPE_OF_VALUE_FLOAT: {
-		using T = float;
-		using func_type =  T (*)(T);
-		type_get_func = &slow_get_page_float;
-		break;
-	}
-	case TYPE_OF_VALUE_STRING: {
-		using T = std::string;
-		using func_type =  T (*)(T);
-		type_get_func = &slow_get_page_string;
-		break;
-	}
-	}*/
-	//using T = int;
-	
+	cout << "Hits in cache: " << hit << std::endl;
 	return 0;
 }
