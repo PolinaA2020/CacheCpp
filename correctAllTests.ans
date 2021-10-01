@@ -1,0 +1,136 @@
+./tests/asHIRnonres_int20.dat
+------------
+All elements
+HIR 21
+LIR 7
+LIR 5
+LIR 4
+HIR 20
+LIR 3
+LIR 2
+LIR 1
+LIR 19
+LIR 18
+LIR 17
+LIR 16
+LIR 15
+LIR 14
+LIR 13
+LIR 12
+LIR 11
+LIR 10
+LIR 9
+LIR 8
+------------
+HIR elements
+21
+6
+Hits in cache: 7
+./tests/asHIRres_int20.dat
+------------
+All elements
+LIR 19
+LIR 17
+LIR 16
+LIR 15
+LIR 14
+LIR 13
+LIR 12
+LIR 11
+LIR 10
+LIR 9
+LIR 8
+LIR 7
+LIR 6
+LIR 5
+LIR 4
+HIR 20
+LIR 3
+LIR 2
+LIR 1
+------------
+HIR elements
+20
+Hits in cache: 18
+./tests/asHIRresNOTStack_int20.dat
+------------
+All elements
+LIR 18
+LIR 17
+LIR 16
+LIR 15
+LIR 14
+LIR 13
+LIR 12
+LIR 11
+LIR 10
+LIR 9
+LIR 8
+LIR 7
+LIR 6
+LIR 5
+LIR 4
+HIR 20
+LIR 3
+LIR 2
+LIR 1
+------------
+HIR elements
+19
+20
+Hits in cache: 18
+./tests/asLIR_int20.dat
+------------
+All elements
+LIR 7
+LIR 5
+LIR 4
+HIR 20
+LIR 3
+LIR 2
+LIR 1
+HIR 19
+LIR 18
+LIR 17
+LIR 16
+LIR 15
+LIR 14
+LIR 13
+LIR 12
+LIR 11
+LIR 10
+LIR 9
+LIR 8
+LIR 6
+------------
+HIR elements
+20
+19
+Hits in cache: 6
+./tests/asLIRlast_int20.dat
+------------
+All elements
+LIR 18
+LIR 17
+LIR 16
+LIR 15
+LIR 14
+LIR 13
+LIR 12
+LIR 11
+LIR 10
+LIR 9
+LIR 8
+LIR 7
+LIR 6
+LIR 5
+LIR 4
+HIR 20
+LIR 3
+LIR 2
+LIR 1
+------------
+HIR elements
+20
+19
+Hits in cache: 18

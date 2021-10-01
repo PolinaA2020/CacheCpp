@@ -43,19 +43,23 @@ template <typename T, typename KeyT> struct cache_ {
             }
             void push_front_LIR(KeyT key) {
                 this->push_front(key);
-                this->LIR = 1;
+                this->setToLIR(this->front());
             }
             void push_front_HIR(KeyT key) {
                 this->push_front(key);
-                this->LIR = 0;
+                this->setToHIR(this->front());
             }
             void push_back_LIR(KeyT key) {
                 this->push_back(key);
-                this->LIR = 1;
+                this->setToLIR(this->back());
             }
             void push_back_HIR(KeyT key) {
                 this->push_back(key);
-                this->LIR = 0;
+                this->setToHIR(this->back());
+            }
+            void bringForward(ListIt it){
+                this->push_front(*it);
+                this->erase(it);
             }
     };
 
@@ -94,33 +98,37 @@ template <typename T, typename KeyT> struct cache_ {
                 Allcache_.changestatus(hit->second);
                 HIRhash_.erase(hit_hir);
                 HIRcache_.erase(hit_hir->second);
+                Allhash_.erase((*Allcache_.back()).data_);
+                Allcache_.erase(Allcache_.back());
             }
             else if(!Allcache_.isLIR(hit->second)) {// non-resident in Stack
                 Allcache_.changestatus(hit->second);
                 auto old_lir_back = Allcache_.back();// iterator
-                if(full(HIRcache_))
-                	HIRcache_.pop_back();
+                if(full(HIRcache_)) {
+                    HIRhash_.erase((*HIRcache_.back()).data_);
+                    HIRcache_.pop_back();
+                }
                 	
-                HIRcache_.push_back(*old_lir_back);
+                HIRcache_.push_back((*old_lir_back).data_);
                 HIRcache_.setToHIR(HIRcache_.back());
                 HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
                 Allhash_.erase((*old_lir_back).data_);
                 Allcache_.erase(old_lir_back);
                 return 1;
             }
-            bringForwardStack(hit->second);
-            // printCache();
+            Allcache_.bringForward(hit->second);
             StackPrune();
-            // printCache();
             return 1;
         }
         else {// is NOT in Stack
             if(hit_hir != HIRhash_.end()) 
-                bringForwardHIR(hit_hir->second);
+                HIRcache_.bringForward(hit_hir->second);
             else {// new element
                 if(full(Allcache_)) {
-                    if(full(HIRcache_))
+                    if(full(HIRcache_)) {
+                        HIRhash_.erase((*HIRcache_.back()).data_);
                         HIRcache_.pop_back();
+                    }
 
                     HIRcache_.push_front(node_t(slow_get_page(key)));
                     Allcache_.push_front(node_t(slow_get_page(key)));
@@ -147,9 +155,7 @@ template <typename T, typename KeyT> struct cache_ {
         Allcache_.pop_back();
         old_back = Allcache_.back();
         while(!Allcache_.isLIR(old_back)) {
-            //auto new_hir_back = HIRcache_.push_back(*old_back);
             HIRcache_.push_back(*old_back);
-            //HIRhash_.insert(new_hir_back);
             HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
 
             Allhash_.erase((*old_back).data_);
@@ -157,36 +163,16 @@ template <typename T, typename KeyT> struct cache_ {
         }
         return true;
     }
-    void bringForwardStack(ListIt it)
-    {
-        Allcache_.push_front(*it);
-        Allcache_.erase(it);
-    }
-    void bringForwardHIR(ListIt it)
-    {
-        HIRcache_.push_front(*it);
-        HIRcache_.erase(it);
-    }
     void printCache() {
         std::cout << "------------\n" << "All elements\n";
         for(ListIt it = Allcache_.begin(); it != Allcache_.end(); it++){
             if((*it).LIR_)
                 std::cout << "LIR ";
             else
-                std::cout << "HIR ";
+                std::cout << "H ";
             std::cout << (*it).data_ << "\n";
         }
-        /*if((*Allcache_.back()).LIR_)
-                std::cout << "LIR ";
-            else
-                std::cout << "HIR ";
-        std::cout<<(*Allcache_.back()).data_ << "\n";
-        if((*Allcache_.front()).LIR_)
-                std::cout << "LIR ";
-            else
-                std::cout << "HIR ";
-        std::cout<<(*Allcache_.front()).data_ << "\n";
-        */std::cout << "------------\n" << "HIR elements\n";
+        std::cout << "------------\n" << "HIR elements\n";
         for(ListIt it = HIRcache_.begin(); it != HIRcache_.end(); it++){
             std::cout << (*it).data_ << "\n";
         }
