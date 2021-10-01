@@ -124,7 +124,7 @@ template <typename T, typename KeyT> struct cache_ {
             else {// new element
                 if(full(Allcache_)) {
                     if(full(HIRcache_)) 
-                        pop_back_HIR();                   
+                        pop_back_HIR();                
 
                     add_to_front_HIR(node_t(slow_get_page(key)));
                     add_to_front_All(node_t(slow_get_page(key)), HIR);
@@ -135,11 +135,14 @@ template <typename T, typename KeyT> struct cache_ {
         }
         return 0;    
     }
-    bool StackPrune()
+    void StackPrune()
     {
+        if(Allcache_.empty())
+            return;
         auto old_back = Allcache_.back();
+
         if(Allcache_.isLIR(old_back))
-            return true;
+            return;
         pop_back_All();
         old_back = Allcache_.back();
         while(!Allcache_.isLIR(old_back)) {
@@ -147,7 +150,6 @@ template <typename T, typename KeyT> struct cache_ {
             pop_back_All();
             old_back = Allcache_.back();
         }
-        return true;
     }
     void printCache() {
         std::cout << "------------\n" << "All elements\n";
@@ -186,18 +188,24 @@ template <typename T, typename KeyT> struct cache_ {
         HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
     }
     void erase_All(HashConstIt hit) {
+        //assert(hit);
         Allhash_.erase(hit);
         Allcache_.erase(hit->second);
     }
     void erase_HIR(HashConstIt hit) {
+        //assert(hit);
         HIRhash_.erase(hit);
         HIRcache_.erase(hit->second);
     }
     void pop_back_All() {
+        if(Allcache_.empty())
+            return;
         Allhash_.erase((*Allcache_.back()).data_);
         Allcache_.pop_back();
     }
     void pop_back_HIR() {
+        if(HIRcache_.empty())
+            return;
         HIRhash_.erase((*HIRcache_.back()).data_);
         HIRcache_.pop_back();
     }
