@@ -6,6 +6,10 @@
 #include <iterator>
 #include <unordered_map>
 #include <cmath>
+#include <cassert>
+
+bool LIR = 1; // maybe #define better
+bool HIR = 0;
 
 namespace caches {
 template <typename T, typename KeyT> struct cache_ {
@@ -41,19 +45,19 @@ template <typename T, typename KeyT> struct cache_ {
                 ListIt it = this->end();
                 return --it;
             }
-            void push_front_LIR(KeyT key) {
+            void push_front_LIR(node_t key) {
                 this->push_front(key);
                 this->setToLIR(this->front());
             }
-            void push_front_HIR(KeyT key) {
+            void push_front_HIR(node_t key) {
                 this->push_front(key);
                 this->setToHIR(this->front());
             }
-            void push_back_LIR(KeyT key) {
+            void push_back_LIR(node_t key) {
                 this->push_back(key);
                 this->setToLIR(this->back());
             }
-            void push_back_HIR(KeyT key) {
+            void push_back_HIR(node_t key) {
                 this->push_back(key);
                 this->setToHIR(this->back());
             }
@@ -70,10 +74,10 @@ template <typename T, typename KeyT> struct cache_ {
     bool full(list_t &myList) const {
         return (myList.size() >= myList.sz_);
     }
-    
+    using HashConstIt = typename std::unordered_map<KeyT, ListIt>::const_iterator;
+
     std::unordered_map<KeyT, ListIt> Allhash_;
     std::unordered_map<KeyT, ListIt> HIRhash_;
-    
     cache_(size_t size) { // constructor
         sz_ = size;
         Allcache_.sz_ = ceil(0.9 * size);
@@ -96,24 +100,18 @@ template <typename T, typename KeyT> struct cache_ {
         if(hit != Allhash_.end()) { // in Stack
             if(hit_hir != HIRhash_.end()) {// as HIR
                 Allcache_.changestatus(hit->second);
-                HIRhash_.erase(hit_hir);
-                HIRcache_.erase(hit_hir->second);
-                Allhash_.erase((*Allcache_.back()).data_);
-                Allcache_.erase(Allcache_.back());
+                erase_HIR(hit_hir);
+                pop_back_All();
             }
             else if(!Allcache_.isLIR(hit->second)) {// non-resident in Stack
                 Allcache_.changestatus(hit->second);
                 auto old_lir_back = Allcache_.back();// iterator
                 if(full(HIRcache_)) {
-                    HIRhash_.erase((*HIRcache_.back()).data_);
-                    HIRcache_.pop_back();
+                    pop_back_HIR();
                 }
-                	
-                HIRcache_.push_back((*old_lir_back).data_);
-                HIRcache_.setToHIR(HIRcache_.back());
-                HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
-                Allhash_.erase((*old_lir_back).data_);
-                Allcache_.erase(old_lir_back);
+                
+                add_to_back_HIR(*old_lir_back);
+                pop_back_All();
                 return 1;
             }
             Allcache_.bringForward(hit->second);
@@ -125,24 +123,15 @@ template <typename T, typename KeyT> struct cache_ {
                 HIRcache_.bringForward(hit_hir->second);
             else {// new element
                 if(full(Allcache_)) {
-                    if(full(HIRcache_)) {
-                        HIRhash_.erase((*HIRcache_.back()).data_);
-                        HIRcache_.pop_back();
-                    }
+                    if(full(HIRcache_)) 
+                        pop_back_HIR();                   
 
-                    HIRcache_.push_front(node_t(slow_get_page(key)));
-                    Allcache_.push_front(node_t(slow_get_page(key)));
-                    Allcache_.setToHIR(Allcache_.front());
-                    HIRhash_[(*HIRcache_.front()).data_] = HIRcache_.front();
-                    Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
+                    add_to_front_HIR(node_t(slow_get_page(key)));
+                    add_to_front_All(node_t(slow_get_page(key)), HIR);
                 }
-                else {
-                    Allcache_.push_front(node_t(slow_get_page(key)));
-                    Allcache_.setToLIR(Allcache_.front());
-                    Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
-                }
+                else 
+                    add_to_front_All(node_t(slow_get_page(key)), LIR);
             }
-            
         }
         return 0;    
     }
@@ -151,15 +140,12 @@ template <typename T, typename KeyT> struct cache_ {
         auto old_back = Allcache_.back();
         if(Allcache_.isLIR(old_back))
             return true;
-        Allhash_.erase((*old_back).data_);
-        Allcache_.pop_back();
+        pop_back_All();
         old_back = Allcache_.back();
         while(!Allcache_.isLIR(old_back)) {
-            HIRcache_.push_back(*old_back);
-            HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
-
-            Allhash_.erase((*old_back).data_);
-            Allcache_.pop_back();
+            add_to_back_HIR(*old_back);
+            pop_back_All();
+            old_back = Allcache_.back();
         }
         return true;
     }
@@ -169,13 +155,51 @@ template <typename T, typename KeyT> struct cache_ {
             if((*it).LIR_)
                 std::cout << "LIR ";
             else
-                std::cout << "H ";
+                std::cout << "HIR ";
             std::cout << (*it).data_ << "\n";
         }
         std::cout << "------------\n" << "HIR elements\n";
         for(ListIt it = HIRcache_.begin(); it != HIRcache_.end(); it++){
             std::cout << (*it).data_ << "\n";
         }
+    }
+    void add_to_front_All(node_t key, bool status) {
+        if(status == LIR)
+            Allcache_.push_front_LIR(key);
+        else
+            Allcache_.push_front_HIR(key);
+        Allhash_[(*Allcache_.front()).data_] = Allcache_.front();
+    }
+    void add_to_back_All(node_t key, bool status) {
+        if(status == LIR)
+            Allcache_.push_back_LIR(key);
+        else
+            Allcache_.push_back_HIR(key);
+        Allhash_[(*Allcache_.back()).data_] = Allcache_.back();
+    }
+    void add_to_front_HIR(node_t key) {
+        HIRcache_.push_front_HIR(key);
+        HIRhash_[(*HIRcache_.front()).data_] = HIRcache_.front();
+    }
+    void add_to_back_HIR(node_t key) {
+        HIRcache_.push_back_HIR(key);
+        HIRhash_[(*HIRcache_.back()).data_] = HIRcache_.back();
+    }
+    void erase_All(HashConstIt hit) {
+        Allhash_.erase(hit);
+        Allcache_.erase(hit->second);
+    }
+    void erase_HIR(HashConstIt hit) {
+        HIRhash_.erase(hit);
+        HIRcache_.erase(hit->second);
+    }
+    void pop_back_All() {
+        Allhash_.erase((*Allcache_.back()).data_);
+        Allcache_.pop_back();
+    }
+    void pop_back_HIR() {
+        HIRhash_.erase((*HIRcache_.back()).data_);
+        HIRcache_.pop_back();
     }
 };
 }
