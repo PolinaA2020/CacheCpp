@@ -1,7 +1,7 @@
 # CacheCpp
 $ make main
 
-$ ./main <type> <size_of_cache> <name_of_test_file>
+$ ./main <type_of_values> <size_of_cache> <name_of_test_file>
  
 Example^.^
 
