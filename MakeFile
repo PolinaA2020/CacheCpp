@@ -1,0 +1,10 @@
+main: main.o Cache.o
+	g++ -o main main.o LIRSCache.o
+	rm main.o LIRSCache.o
+	echo "\nProgram started\n"
+	./main
+main.o: main.cc
+	g++ -O0 main.cc -o main.o
+LIRSCache.o: LIRSCache.hpp
+	g++ -O0 LIRSCache.hpp -o LIRSCache.o
+

@@ -45,7 +45,7 @@ template <typename T>
 			hit += c.lookUpAndUpdate(val, slow_get_page<T>);
 			//c.template lookUpAndUpdate<F>(val, type_get_func); 
 		}
-		c.printCache();
+		// c.printCache();
 		return hit;
 	}
 /*============================================================*/
