@@ -15,7 +15,7 @@ namespace caches {
 template <typename T, typename KeyT> struct cache_ {
     struct node_t {
         T data_;
-        bool LIR_;
+        bool LIR_ = 0;
         node_t(T new_data) {
             data_ = new_data;
         }
