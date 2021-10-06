@@ -22,45 +22,45 @@ template <typename T, typename KeyT> struct cache_ {
     };
     using ListIt = typename std::list<node_t>::iterator;
 
-    class list_t {
+    class list_t : public std::list<node_t> {
         public:
-        std::list<node_t> lst_;
-        size_t sz_;
-        
-        bool isLIR(ListIt node) {
-            return (*node).LIR_;
-        }
-        void setToLIR(ListIt node) {
-            (*node).LIR_ = 1;
-        }
-        void setToHIR(ListIt node) {
-            (*node).LIR_ = 0;
-        }
-        void changestatus(ListIt node) {
-            (*node).LIR_ = !((*node).LIR_);
-        }
-        ListIt front() {
-            return lst_.begin();
-        }
-        ListIt back() {
-            return std::prev(lst_.end());
-        }
-        void push_front_LIR(node_t key) {
-            lst_.push_front(key);
-            setToLIR(this->front());
-        }
-        void push_front_HIR(node_t key) {
-            lst_.push_front(key);
-            setToHIR(this->front());
-        }
-        void push_back_LIR(node_t key) {
-            lst_.push_back(key);
-            setToLIR(this->back());
-        }
-        void push_back_HIR(node_t key) {
-            lst_.push_back(key);
-            setToHIR(this->back());
-        }
+            size_t sz_;
+            
+            bool isLIR(ListIt node) {
+                return (*node).LIR_;
+            }
+            void setToLIR(ListIt node) {
+                (*node).LIR_ = 1;
+            }
+            void setToHIR(ListIt node) {
+                (*node).LIR_ = 0;
+            }
+            void changestatus(ListIt node) {
+                (*node).LIR_ = !((*node).LIR_);
+            }
+            ListIt front() {
+                return this->begin();
+            }
+            ListIt back() {
+                ListIt it = this->end();
+                return --it;
+            }
+            void push_front_LIR(node_t key) {
+                this->push_front(key);
+                this->setToLIR(this->front());
+            }
+            void push_front_HIR(node_t key) {
+                this->push_front(key);
+                this->setToHIR(this->front());
+            }
+            void push_back_LIR(node_t key) {
+                this->push_back(key);
+                this->setToLIR(this->back());
+            }
+            void push_back_HIR(node_t key) {
+                this->push_back(key);
+                this->setToHIR(this->back());
+            }
     };
 
     size_t sz_;
@@ -68,7 +68,7 @@ template <typename T, typename KeyT> struct cache_ {
     list_t Allcache_;
     list_t HIRcache_;
     bool full(list_t &myList) const {
-        return (myList.lst_.size() >= myList.sz_);
+        return (myList.size() >= myList.sz_);
     }
     using HashConstIt = typename std::unordered_map<KeyT, ListIt>::const_iterator;
 
@@ -80,7 +80,12 @@ template <typename T, typename KeyT> struct cache_ {
         HIRcache_.sz_ = floor(0.1 * size);
 
     }
-
+    ~cache_() {
+        HIRhash_.clear();
+        Allhash_.clear();
+        Allcache_.clear();
+        HIRcache_.clear();
+    }
     template <typename F>
     int lookUpAndUpdate(KeyT key, F slow_get_page)
     {
@@ -102,8 +107,17 @@ template <typename T, typename KeyT> struct cache_ {
                 pop_back_All();
             }
             else if(!Allcache_.isLIR(hit->second)) {// non-resident in Stack
+                //if(!full(Allcache_)) 
                 Allcache_.changestatus(hit->second);
                 pop_back_All();
+                /*else {
+                    if(full(HIRcache_)) {
+                        pop_back_HIR();
+                    }
+                    if(full(HIRcache_)) // .....
+                        return 1;
+                    add_to_front_HIR(*hit->second); // back&
+                }*/
             }
             bringForwardAll(hit);
             StackPrune();
@@ -111,13 +125,19 @@ template <typename T, typename KeyT> struct cache_ {
         }
         else {// is NOT in Stack
             if(hit_hir != HIRhash_.end())  { // in HIRs
+                // ? if(hit_hir->second != HIRcache_.front())
                     bringForwardHIR(hit_hir);
+                // ? else {
                     add_to_front_All(*(hit_hir->second), LIR);
                     pop_front_HIR();
+                // ? }
+                
             }
             else {// new element
                 if(full(Allcache_)) {
                     if(full(HIRcache_)) {
+                        //if(Allcache_.size() >= 2 * Allcache_.sz_)
+                          //  erase_All(HIRcache_.back());
                         pop_back_HIR();            
                     }
                     if(full(HIRcache_)) {
@@ -137,7 +157,7 @@ template <typename T, typename KeyT> struct cache_ {
     }
     void StackPruneBig(ListIt stop)
     {
-        if(Allcache_.lst_.empty())
+        if(Allcache_.empty())
             return;
         auto old_back = Allcache_.back();
         while(old_back != stop) {
@@ -163,7 +183,7 @@ template <typename T, typename KeyT> struct cache_ {
     }
     void StackPrune()
     {
-        if(Allcache_.lst_.empty())
+        if(Allcache_.empty())
             return;
         auto old_back = Allcache_.back();
 
@@ -215,36 +235,36 @@ template <typename T, typename KeyT> struct cache_ {
     }
     void erase_All(HashConstIt hit) {
         Allhash_.erase(hit);
-        Allcache_.lst_.erase(hit->second);
+        Allcache_.erase(hit->second);
     }
     void erase_All(ListIt it) {
         auto hit = Allhash_.find((*it).data_);
         if(hit == Allhash_.end())
             return;
         Allhash_.erase(hit);
-        Allcache_.lst_.erase(hit->second);
+        Allcache_.erase(hit->second);
     }
     void erase_HIR(HashConstIt hit) {
         HIRhash_.erase(hit);
-        HIRcache_.lst_.erase(hit->second);
+        HIRcache_.erase(hit->second);
     }
     void pop_back_All() {
-        if(Allcache_.lst_.empty())
+        if(Allcache_.empty())
             return;
         Allhash_.erase((*Allcache_.back()).data_);
-        Allcache_.lst_.pop_back();
+        Allcache_.pop_back();
     }
     void pop_back_HIR() { // check if trouble with back & front 
-        if(HIRcache_.lst_.empty())
+        if(HIRcache_.empty())
             return;
         HIRhash_.erase((*HIRcache_.back()).data_);
-        HIRcache_.lst_.pop_back();
+        HIRcache_.pop_back();
     }
     void pop_front_HIR() {
-        if(HIRcache_.lst_.empty())
+        if(HIRcache_.empty())
             return;
         HIRhash_.erase((*HIRcache_.front()).data_);
-        HIRcache_.lst_.pop_front();
+        HIRcache_.pop_front();
     }
     void hash_map_check_all(KeyT key) {
         for(auto it = Allhash_.begin(); it != Allhash_.end(); ++it) {
