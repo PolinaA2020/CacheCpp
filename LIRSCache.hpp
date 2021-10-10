@@ -87,7 +87,7 @@ template <typename T, typename KeyT> struct cache_ {
         auto hit = Allhash_.find(key); // check if key is in Stack
         auto hit_hir = HIRhash_.find(key);
         
-        hash_map_check_all(key); // for debug
+        // hash_map_check_all(key); // for debug
 
         if(hit != Allhash_.end()) { // in Stack
             if(hit_hir != HIRhash_.end()) {// as HIR
