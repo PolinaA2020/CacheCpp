@@ -87,8 +87,7 @@ template <typename T, typename KeyT> struct cache_ {
         auto hit = Allhash_.find(key); // check if key is in Stack
         auto hit_hir = HIRhash_.find(key);
         
-        // hash_map_check_all(key); // for debug
-
+  
         if(hit != Allhash_.end()) { // in Stack
             if(hit_hir != HIRhash_.end()) {// as HIR
                 Allcache_.changestatus(hit->second);
@@ -236,14 +235,3 @@ template <typename T, typename KeyT> struct cache_ {
         HIRhash_.erase((*HIRcache_.front()).data_);
         HIRcache_.lst_.pop_front();
     }
-/*=================================================================================*/
-    void hash_map_check_all(KeyT key) const {
-        for(auto it = Allhash_.begin(); it != Allhash_.end(); ++it) {
-            if(it->first != (*it->second).data_) {
-                std::cout << "ERORR here, key is " << key << std::endl;
-                std::cout << it->first << " " << (*it->second).data_ << std::endl;
-            }
-        }
-    }
-};
-}
